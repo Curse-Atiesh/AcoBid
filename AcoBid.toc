@@ -1,0 +1,10 @@
+## Interface: 11302
+## Title: AcoBid
+## Notes: Bidding addon
+## Author: Curse
+## Version: 1.0.0
+## OptionalDeps: Ace3
+## X-Embeds: Ace3
+
+embeds.xml
+main.lua
