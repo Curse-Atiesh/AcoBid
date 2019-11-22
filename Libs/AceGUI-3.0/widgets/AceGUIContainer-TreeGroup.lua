@@ -3,7 +3,7 @@ TreeGroup Container
 Container that uses a tree control to switch between groups.
 -------------------------------------------------------------------------------]]
 local Type, Version = "TreeGroup", 44
-local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
+local AceGUI = LibStub and LibStub("AceGUI-3.0-custom", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
 local WoW80 = select(4, GetBuildInfo()) >= 80000

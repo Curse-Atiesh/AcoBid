@@ -1,16 +1,17 @@
 local version = GetAddOnMetadata("AcoBid", "Version");
 
 AcoBid = LibStub("AceAddon-3.0"):NewAddon("AcoBid", "AceConsole-3.0", "AceComm-3.0", "AceTimer-3.0")
-local AceGUI = LibStub("AceGUI-3.0")
+local AceGUI = LibStub("AceGUI-3.0-custom")
 CreateFrame("GameTooltip", "tooltip", nil, "GameTooltipTemplate");
 tooltip:SetScale(GetCVar("uiScale"))
 tooltip:Hide();
 
 local checkSender = nil;
-local AcoMasterBids = nil;
+local AcoMasterBids = AceGUI:Create("Frame");
 local AcoMasterBidsScroll = nil;
 local biddingFrames = {};
 local openBids = 0;
+local previousBid = nil;
 
 local myname = UnitName("player");
 
@@ -25,7 +26,6 @@ function AcoBid:OnInitialize()
   AcoBid:RegisterComm("AcoBidStart", "AcoBidStartCallback")
   AcoBid:RegisterComm("AcoBidCheck", "AcoBidCheckCallback")
 
-  AcoMasterBids = AceGUI:Create("Frame");
   AcoMasterBids:SetTitle("AcoBid v"..version);
   AcoMasterBids:SetWidth(300);
   AcoMasterBids:SetHeight(300);
@@ -202,7 +202,17 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
         guildRankName = 'NO RANK'
       end
       local message = '['..bidID..'] '..itemLink..' "'..string.upper(guildRankName)..'" "'..selecttypes[selectbox:GetValue()]..'" '..tonumber(editbox:GetText());
-      SendChatMessage(message, "WHISPER", "Common", sender);
+      if previousBid then
+        if previousBid == message then
+          print('|cFFFF0000You already sent a bid with that value.')
+        else
+          previousBid = message;
+          SendChatMessage(message, "WHISPER", "Common", sender);
+        end
+      else
+        previousBid = message;
+        SendChatMessage(message, "WHISPER", "Common", sender);
+      end
     end
 
   end)

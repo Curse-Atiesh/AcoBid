@@ -3,7 +3,7 @@ Label Widget
 Displays text and optionally an icon.
 -------------------------------------------------------------------------------]]
 local Type, Version = "Label", 26
-local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
+local AceGUI = LibStub and LibStub("AceGUI-3.0-custom", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
 -- Lua APIs

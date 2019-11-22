@@ -25,7 +25,7 @@
 -- @class file
 -- @name AceGUI-3.0
 -- @release $Id: AceGUI-3.0.lua 1221 2019-07-20 18:23:00Z nevcairiel $
-local ACEGUI_MAJOR, ACEGUI_MINOR = "AceGUI-3.0", 39
+local ACEGUI_MAJOR, ACEGUI_MINOR = "AceGUI-3.0-custom", 00
 local AceGUI, oldminor = LibStub:NewLibrary(ACEGUI_MAJOR, ACEGUI_MINOR)
 
 if not AceGUI then return end -- No upgrade needed
