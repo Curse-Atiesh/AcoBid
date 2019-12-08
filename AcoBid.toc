@@ -2,7 +2,7 @@
 ## Title: AcoBid
 ## Notes: Bidding addon
 ## Author: Curse
-## Version: 1.0.2
+## Version: 1.1.1
 ## OptionalDeps: Ace3
 ## X-Embeds: Ace3
 

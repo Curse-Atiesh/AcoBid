@@ -1,6 +1,6 @@
 local version = GetAddOnMetadata("AcoBid", "Version");
 
-AcoBid = LibStub("AceAddon-3.0"):NewAddon("AcoBid", "AceConsole-3.0", "AceComm-3.0", "AceTimer-3.0")
+AcoBid = LibStub("AceAddon-3.0"):NewAddon("AcoBid", "AceConsole-3.0", "AceComm-3.0", "AceTimer-3.0", "AceSerializer-3.0")
 local AceGUI = LibStub("AceGUI-3.0-custom")
 CreateFrame("GameTooltip", "tooltip", nil, "GameTooltipTemplate");
 tooltip:SetScale(GetCVar("uiScale"))
@@ -12,6 +12,7 @@ local AcoMasterBidsScroll = nil;
 local biddingFrames = {};
 local openBids = 0;
 local previousBid = nil;
+local Acodkp = {};
 
 local myname = UnitName("player");
 
@@ -22,18 +23,26 @@ function AcoBid:OnInitialize()
   end
 
   AcoBid:RegisterChatCommand('bids', 'openbidswindow');
+  AcoBid:RegisterChatCommand('dkp', 'checkdkp');
 
   AcoBid:RegisterComm("AcoBidStart", "AcoBidStartCallback")
   AcoBid:RegisterComm("AcoBidCheck", "AcoBidCheckCallback")
+  AcoBid:RegisterComm("AcoDKPCheck", "AcoDKPCheckCallback")
+  AcoBid:RegisterComm("AcoDKPHost", "AcoDKPHostCallback")
+  AcoBid:RegisterComm("AcoDKPGet", "AcoDKPGetCallback")
 
   AcoMasterBids:SetTitle("AcoBid v"..version);
   AcoMasterBids:SetWidth(300);
   AcoMasterBids:SetHeight(300);
   AcoMasterBids:SetLayout("Flow")
-  AcoMasterBids.frame:SetMinResize(300, 200)
+  AcoMasterBids.frame:SetMinResize(200, 100)
   AcoMasterBids.content:SetPoint("BOTTOMRIGHT", -17, 27)
   AcoMasterBids.statusbg:Hide();
-  AcoMasterBids.closebutton:Hide();
+  --AcoMasterBids.closebutton:Hide();
+
+  AcoMasterBids:SetCallback("OnClose", function(widget)
+    print("You can re-open the bids window at any time using /bids")
+  end)
 
   scrollcontainer = AceGUI:Create("SimpleGroup")
   scrollcontainer:SetFullWidth(true)
@@ -81,6 +90,7 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
   frame:SetStatusText(timer_amount.." Seconds left to bid...")
   frame:SetWidth(400);
   frame:SetHeight(270);
+  frame.frame:SetMinResize(400, 270)
   frame.frame:Hide();
 
   local group = AceGUI:Create("SimpleGroup")
@@ -121,6 +131,12 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
   details2:SetFont(GameFontNormal:GetFont());
   group:AddChild(details2)
 
+  local details3 = AceGUI:Create("Label")
+  details3:SetText("|cffffd100Available DKP: |cFFFF7D0A(attempting to fetch...)");
+  details3:SetRelativeWidth(1);
+  details3:SetFont(GameFontNormal:GetFont());
+  group:AddChild(details3)
+
   local editbox = AceGUI:Create("EditBox")
   editbox:SetLabel("Bid amount: |cffff0000*")
   editbox:SetRelativeWidth(0.5);
@@ -129,7 +145,7 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
   group:AddChild(editbox)
 
   local selectbox = AceGUI:Create("Dropdown")
-  local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "ALT"};
+  local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "ALT-MAIN-SPEC", "ALT-OFF-SPEC"};
   selectbox:SetLabel("Bidding for: |cffff0000*")
   selectbox:SetRelativeWidth(0.5);
   selectbox:SetList(selecttypes);
@@ -149,6 +165,18 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
   frame:AddChild(group)
 
   biddingFrames[bidID].frame = frame;
+  biddingFrames[bidID].dkp = details3;
+
+  AcoBid:SendCommMessage("AcoDKPGet", bidID, "RAID")
+
+  biddingFrames[bidID]['timer'] = true;
+  biddingFrames[bidID]['timerrunning'] = true;
+  AcoBid:ScheduleTimer(function() 
+    biddingFrames[bidID].timerrunning = false;
+    if(biddingFrames[bidID].timer) then
+      details3:SetText("|cffffd100Available DKP: |cffff0000(couldn't fetch data)");  
+    end
+  end, 3)
   
   local timerCount = timer_amount;
   local timer = AcoBid:ScheduleRepeatingTimer(function()
@@ -188,6 +216,7 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
     else
       typeGood = true;
       if bidGood and timerCount > 0 then
+        errors:SetText("");
         button:SetDisabled(false)
       end
     end
@@ -201,16 +230,18 @@ function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
       if guildRankName == nil then
         guildRankName = 'NO RANK'
       end
-      local message = '['..bidID..'] '..itemLink..' "'..string.upper(guildRankName)..'" "'..selecttypes[selectbox:GetValue()]..'" '..tonumber(editbox:GetText());
+      local message = '['..bidID..'] '..itemLink..' "'..string.upper(guildRankName)..'" "'..selecttypes[selectbox:GetValue()]..'" '..tonumber(editbox:GetText()).." "..(biddingFrames[bidID].dkpamount or 'FALSE');
       if previousBid then
         if previousBid == message then
-          print('|cFFFF0000You already sent a bid with that value.')
+          errors:SetText('|cFFFF0000You\'ve already sent a bid with that value.')
         else
           previousBid = message;
+          errors:SetText("");
           SendChatMessage(message, "WHISPER", "Common", sender);
         end
       else
         previousBid = message;
+        errors:SetText("");
         SendChatMessage(message, "WHISPER", "Common", sender);
       end
     end
@@ -295,4 +326,60 @@ function ShowTooltip(frame,itemLink)
   tooltip:SetOwner(frame, 'ANCHOR_BOTTOM')
   tooltip:SetHyperlink(itemLink)
   tooltip:Show();
+end
+
+function AcoBid:AcoDKPCheckCallback(name,input,distribution,sender)
+  if(distribution == "WHISPER") then
+    Acodkp.timer = false;
+    print('|cFF69FAF5'..input)
+    return false;
+  end
+
+  if(Acodkp.hasHost and input == "0") then
+    print('|cFFFF7D0A'..Acodkp.hasHost..' stopped hosting DKP!')
+    Acodkp.hasHost = false;
+  end
+end
+
+function AcoBid:AcoDKPHostCallback(name,input,distribution,sender)
+  if(input == "false" or sender == myname) then
+    return false
+  end
+
+  Acodkp.hasHost = sender;
+  print('|cFF00FF00'..Acodkp.hasHost..' started hosting DKP!')
+end
+
+function AcoBid:AcoDKPGetCallback(name,input,distribution,sender)
+  if(distribution == "WHISPER") then
+    local success, bid_ID, amount = AcoBid:Deserialize(input)
+    biddingFrames[bid_ID].timer = false;
+    biddingFrames[bid_ID].dkp:SetText("|cffffd100Available DKP: "..amount);
+    biddingFrames[bid_ID].dkpamount = amount;
+  end
+end
+
+function AcoBid:checkdkp(input)
+
+  if IsInRaid() == false then
+    print('|cFFFF0000You must be in a raid')
+    return false
+  end
+
+  local playername = AcoBid:GetArgs(input, 1);
+  
+  if(Acodkp.timerrunning) then
+    print('|cFFFF0000DKP query throttle!')
+    return false
+  end
+  AcoBid:SendCommMessage("AcoDKPCheck", (playername or myname), "RAID")
+  Acodkp['timer'] = true;
+  Acodkp['timerrunning'] = true;
+  AcoBid:ScheduleTimer(function() 
+    Acodkp.timerrunning = false;
+    if(Acodkp.timer) then
+      print('|cFFFF0000No DKP response after 3 seconds! Someone needs to host DKP for queries to be made...')
+    end
+  end, 3)
+  
 end
