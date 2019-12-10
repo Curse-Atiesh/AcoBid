@@ -57,6 +57,10 @@ function AcoBid:OnInitialize()
 
   AcoMasterBidsScroll = scroll;
   AcoMasterBids.frame:Hide();
+
+  AcoMasterBids.frame:RegisterEvent("GROUP_ROSTER_UPDATE");
+  AcoMasterBids.frame:RegisterEvent("PLAYER_ENTERING_WORLD");
+  AcoMasterBids.frame:SetScript("OnEvent", groupUpdate);
 end
 
 function AcoBid:openbidswindow(input)
@@ -335,14 +339,14 @@ function AcoBid:AcoDKPCheckCallback(name,input,distribution,sender)
     return false;
   end
 
-  if(Acodkp.hasHost and input == "0") then
+  if(Acodkp.hasHost == sender and input == "0") then
     print('|cFFFF7D0A'..Acodkp.hasHost..' stopped hosting DKP!')
     Acodkp.hasHost = false;
   end
 end
 
 function AcoBid:AcoDKPHostCallback(name,input,distribution,sender)
-  if(input == "false" or sender == myname) then
+  if(input == "false" or sender == myname or Acodkp.hasHost == sender) then
     return false
   end
 
@@ -382,4 +386,24 @@ function AcoBid:checkdkp(input)
     end
   end, 3)
   
+end
+
+function groupUpdate(self, event, msg, player)
+  if event ~= "GROUP_ROSTER_UPDATE" and event ~= "PLAYER_ENTERING_WORLD" then
+    return false;
+  end
+
+  if IsInRaid() == false then
+    return false
+  end
+
+  if(Acodkp.host == myname) then
+    return false
+  end
+
+  if(Acodkp.hashost) then
+    return false
+  end
+
+  AcoBid:SendCommMessage("AcoDKPCheck", "0", "RAID")
 end
