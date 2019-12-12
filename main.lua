@@ -393,6 +393,11 @@ function groupUpdate(self, event, msg, player)
     return false;
   end
 
+  local instance, instance_type = IsInInstance();
+  if(instance and instance_type == "pvp") then
+    return false
+  end
+
   if IsInRaid() == false then
     return false
   end
