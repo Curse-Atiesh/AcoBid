@@ -2,6 +2,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   local version = GetAddOnMetadata("AcoBid", "Version");
   
   AcoBid = LibStub("AceAddon-3.0"):NewAddon("AcoBid", "AceConsole-3.0", "AceComm-3.0", "AceTimer-3.0", "AceSerializer-3.0")
+  AcoBid_FrameSettings = {}
   local AceGUI = LibStub("AceGUI-3.0-custom")
   CreateFrame("GameTooltip", "tooltip", nil, "GameTooltipTemplate");
   tooltip:SetScale(GetCVar("uiScale"))
@@ -16,6 +17,27 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   local Acodkp = {};
   local lootlist = {}
   local myname = UnitName("player");
+
+  function frameResizeEvent(widget, frameID)
+    if(not AcoBid_FrameSettings[frameID]) then AcoBid_FrameSettings[frameID] = {} end
+    AcoBid_FrameSettings[frameID]['bottom'] = widget.frame:GetBottom()
+    AcoBid_FrameSettings[frameID]['left'] = widget.frame:GetLeft()
+    AcoBid_FrameSettings[frameID]['width'] = widget.frame:GetWidth()
+    AcoBid_FrameSettings[frameID]['height'] = widget.frame:GetHeight()
+  end
+  
+  function setFrameSize(frame, frameID, width, height)
+    if(AcoBid_FrameSettings[frameID]) then
+      frame:SetWidth(AcoBid_FrameSettings[frameID].width);
+      frame:SetHeight(AcoBid_FrameSettings[frameID].height);
+      frame:SetPoint("BOTTOMLEFT", UIParent,"BOTTOMLEFT", AcoBid_FrameSettings[frameID].left, AcoBid_FrameSettings[frameID].bottom);
+    else
+      frame:SetWidth(width);
+      frame:SetHeight(height);
+    end
+  
+    frame:SetCallback("OnResize", function(widget) frameResizeEvent(widget, frameID) end)
+  end
   
   function AcoBid:OnInitialize()
     AcoBid:RegisterChatCommand('bids', 'openbidswindow');
@@ -43,8 +65,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     AcoBid:RegisterComm("AcoBidItem", "AcoBidItemCallback")
   
     AcoMasterBids:SetTitle("AcoBid v"..version);
-    AcoMasterBids:SetWidth(300);
-    AcoMasterBids:SetHeight(300);
+    setFrameSize(AcoMasterBids, 'MasterBids', 300, 300)
     AcoMasterBids:SetLayout("Flow")
     AcoMasterBids.frame:SetMinResize(200, 100)
     AcoMasterBids.content:SetPoint("BOTTOMRIGHT", -17, 27)
@@ -105,8 +126,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     local frame = AceGUI:Create("Frame");
     frame:SetTitle("AcoBid v"..version);
     frame:SetStatusText(timer_amount.." Seconds left to bid...")
-    frame:SetWidth(400);
-    frame:SetHeight(270);
+    setFrameSize(frame, 'BidItem', 400, 270)
     frame.frame:SetMinResize(400, 270)
     frame.frame:Hide();
   
@@ -162,7 +182,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     group:AddChild(editbox)
   
     local selectbox = AceGUI:Create("Dropdown")
-    local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "ALT-MAIN-SPEC", "ALT-OFF-SPEC"};
+    local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "ALT-MAIN-SPEC", "ALT-OFF-SPEC", "PVP/FARMING/MISC", "UNCONTESTED-ONLY"};
     selectbox:SetLabel("Bidding for: |cffff0000*")
     selectbox:SetRelativeWidth(0.5);
     selectbox:SetList(selecttypes);
@@ -402,29 +422,32 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   end
   
   function eventHandler(self, event, ...)
-    if event == "UPDATE_MOUSEOVER_UNIT" then
-      render_corpse_tooltip()
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-      local unitTarget, castGuid, spellId = ...
-      
-      if unitTarget == "player" and spellId == 21358 then
-        SendChatMessage("[AcoBid] I dowsed a rune!", "RAID")
-      end
-    elseif event ~= "GROUP_ROSTER_UPDATE" and event ~= "PLAYER_ENTERING_WORLD" and event ~= "COMBAT_LOG_EVENT_UNFILTERED" then
-      return false;
-    end
-  
-    if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-      processCombatEvent(self, event, ...)
-      return false
-    end
-  
     local instance, instance_type = IsInInstance();
     if(instance and instance_type == "pvp") then
       return false
     end
   
     if IsInRaid() == false then
+      return false
+    end
+
+    if event == "UPDATE_MOUSEOVER_UNIT" then
+      render_corpse_tooltip()
+      return
+    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+      local unitTarget, castGuid, spellId = ...
+      
+      if unitTarget == "player" and spellId == 21358 then
+        SendChatMessage("[AcoBid] I dowsed a rune!", "RAID")
+      end
+
+      return
+    elseif event ~= "GROUP_ROSTER_UPDATE" and event ~= "PLAYER_ENTERING_WORLD" and event ~= "COMBAT_LOG_EVENT_UNFILTERED" then
+      return false;
+    end
+  
+    if event == "COMBAT_LOG_EVENT_UNFILTERED" then
+      processCombatEvent(self, event, ...)
       return false
     end
   
@@ -448,8 +471,21 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
         local hasLoot, _ = CanLootUnit(destGuid)
   
         if hasLoot then
-          lootlist[destGuid] = {myname};
+          lootlist[destGuid] = {}
+          lootlist[destGuid]['looters'] = {myname};
+          lootlist[destGuid]['timestamp'] = time();
           AcoBid:SendCommMessage("AcoBidCanLoot", destGuid, "RAID")
+        end
+  
+        if(#lootlist > 0) then
+          local lowest = nil; local i = 0;
+          for key,value in pairs(lootlist) do
+            i = i+1;
+            if(lowest == nil) then lowest = {['key']=key, ['value']=value.timestamp} end
+            if(value.timestamp < lowest.value) then lowest = {['key']=key, ['value']=value.timestamp} end
+          end
+    
+          if(i >= 20) then lootlist[lowest.key] = nil end
         end
       end)
     end
@@ -487,8 +523,8 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   
   function AcoBid:AcoBidCanLootCallback(name,input,distribution,sender)
     if sender == myname then return false end
-    if(lootlist[input] == nil) then lootlist[input] = {} end
-    table.insert(lootlist[input], sender)
+    if(lootlist[input] == nil) then lootlist[input] = {['looters']={},['timestamp'] = time()} end
+    table.insert(lootlist[input].looters, sender)
   end
   
   function AcoBid:AcoBidItemCallback(name,input,distribution,sender)
@@ -511,10 +547,10 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
       local unitGuid = UnitGUID("mouseover");
   
       if lootlist[unitGuid] ~= nil then
-          if(#lootlist[unitGuid] > 1) then
-            GameTooltip:AddLine("Lootable by mulitple")
+          if(#lootlist[unitGuid].looters > 1) then
+            GameTooltip:AddLine("Lootable by multiple")
           else
-            GameTooltip:AddLine("Lootable by "..lootlist[unitGuid][1])
+            GameTooltip:AddLine("Lootable by "..lootlist[unitGuid].looters[1])
           end
   
           GameTooltip:Show()

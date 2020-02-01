@@ -51,6 +51,7 @@ local function MoverSizer_OnMouseUp(mover)
 	status.height = frame:GetHeight()
 	status.top = frame:GetTop()
 	status.left = frame:GetLeft()
+	frame.obj:Fire("OnResize")
 end
 
 local function SizerSE_OnMouseDown(frame)
