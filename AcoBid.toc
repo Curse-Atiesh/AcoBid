@@ -1,8 +1,8 @@
-## Interface: 11303
+## Interface: 11306
 ## Title: AcoBid
 ## Notes: Bidding addon
 ## Author: Curse
-## Version: 2.1.0
+## Version: 3.0.0
 ## SavedVariables: AcoBid_FrameSettings
 ## OptionalDeps: Ace3
 ## X-Embeds: Ace3

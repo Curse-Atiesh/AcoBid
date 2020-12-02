@@ -12,6 +12,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   local AcoMasterBids = AceGUI:Create("Frame");
   local AcoMasterBidsScroll = nil;
   local biddingFrames = {};
+  local bidLinks = {};
   local openBids = 0;
   local previousBid = nil;
   local Acodkp = {};
@@ -106,12 +107,12 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   end
   
   function AcoBid:AcoBidStartCallback(name,input,distribution,sender)
-    local itemLink, minBid, lootPriority, bidID, timer_amount = AcoBid:GetArgs(input, 5);
+    local itemLink, minBid, bidID, timer_amount = AcoBid:GetArgs(input, 5);
     
-    AddItemToMaster(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
+    AddItemToMaster(itemLink,minBid,sender,bidID, timer_amount)
       
     biddingFrames[bidID] = {};
-    AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
+    AddItemToFrame(itemLink,minBid,sender,bidID, timer_amount)
   end
   
   function AcoBid:AcoBidCheckCallback(name,input,distribution,sender)
@@ -119,7 +120,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     AcoBid:SendCommMessage("AcoBidReturn", version, "RAID")
   end
   
-  function AddItemToFrame(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
+  function AddItemToFrame(itemLink,minBid,sender,bidID, timer_amount)
   
     local itemID, itemType, itemSubType, itemEquipLoc, icon = GetItemInfoInstant(itemLink)
   
@@ -150,6 +151,13 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     item:SetCallback("OnLeave", function(widget)
       tooltip:Hide();
     end)
+
+    item:SetCallback("OnClick", function(widget, event, button)
+      if IsControlKeyDown() then
+        DressUpItemLink(itemLink);
+        return false;
+      end
+    end)
   
     local sep1 = AceGUI:Create("Heading")
     sep1:SetText('')
@@ -162,11 +170,11 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     details1:SetFont(GameFontNormal:GetFont());
     group:AddChild(details1)
   
-    local details2 = AceGUI:Create("Label")
-    details2:SetText("|cffffd100Priority: " ..lootPriority);
-    details2:SetRelativeWidth(1);
-    details2:SetFont(GameFontNormal:GetFont());
-    group:AddChild(details2)
+    -- local details2 = AceGUI:Create("Label")
+    -- details2:SetText("|cffffd100Priority: " ..lootPriority);
+    -- details2:SetRelativeWidth(1);
+    -- details2:SetFont(GameFontNormal:GetFont());
+    -- group:AddChild(details2)
   
     local details3 = AceGUI:Create("Label")
     details3:SetText("|cffffd100Available DKP: |cFFFF7D0A(attempting to fetch...)");
@@ -287,7 +295,7 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   
   end
   
-  function AddItemToMaster(itemLink,minBid,lootPriority,sender,bidID, timer_amount)
+  function AddItemToMaster(itemLink,minBid,sender,bidID, timer_amount)
     openBids = openBids + 1;
     AcoMasterBids.frame:Show()
   
@@ -322,6 +330,12 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     end)
   
     item:SetCallback("OnClick", function(widget, event, button)
+
+      if IsControlKeyDown() then
+        DressUpItemLink(itemLink);
+        return false;
+      end
+
       if biddingFrames[bidID] then
         if biddingFrames[bidID].frame.frame:IsShown() then
           biddingFrames[bidID].frame.frame:Hide();
