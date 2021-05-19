@@ -17,6 +17,8 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   local previousBid = nil;
   local Acodkp = {};
   local lootlist = {}
+  local framesReset = {}
+  local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "PVP/FARMING/MISC", "UNCONTESTED-ONLY"};
   local myname = UnitName("player");
 
   function frameResizeEvent(widget, frameID)
@@ -36,6 +38,11 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
       frame:SetWidth(width);
       frame:SetHeight(height);
     end
+
+    framesReset[frameID] = function()
+      frame:ClearAllPoints();
+      frame:SetPoint("CENTER", UIParent,"CENTER", 0, 0);
+    end
   
     frame:SetCallback("OnResize", function(widget) frameResizeEvent(widget, frameID) end)
   end
@@ -43,12 +50,14 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
   function AcoBid:OnInitialize()
     AcoBid:RegisterChatCommand('bids', 'openbidswindow');
     AcoBid:RegisterChatCommand('dkp', 'checkdkp');
+    AcoBid:RegisterChatCommand('acobidreset', 'acobidReset');
 
     print('|cFFDAB812Type /acohelp for available AcoBid commands|r')
     AcoBid:RegisterChatCommand('acohelp', function()
   
       print([[|n|cFFDAB812Commands available for AcoBid|r
 |cFF69FAF5/bids|r → Opens the bids window
+|cFF69FAF5/acobidreset|r → Resets the acobid windows back to the center of your screen
 |cFF69FAF5/dkp|r → Check your DKP
 |cFF69FAF5/dkp playername|r → Checks dkp of playername if dkp is hosted
 |cFF69FAF5/dkp classname|r → Checks dkp of classname if dkp is hosted]])
@@ -105,9 +114,22 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
       AcoMasterBids.frame:Show();
     end
   end
+
+  function AcoBid:acobidReset()
+    AcoBid_FrameSettings = {}
+  
+    for k, v in pairs(framesReset) do
+      if framesReset[k] then framesReset[k]() end
+    end
+  end
   
   function AcoBid:AcoBidStartCallback(name,input,distribution,sender)
     local itemLink, minBid, bidID, timer_amount = AcoBid:GetArgs(input, 5);
+
+    --already have this item, ignore request
+    if(biddingFrames[bidID] or bidLinks[bidID]) then
+      return false;
+    end
     
     AddItemToMaster(itemLink,minBid,sender,bidID, timer_amount)
       
@@ -190,7 +212,6 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     group:AddChild(editbox)
   
     local selectbox = AceGUI:Create("Dropdown")
-    local selecttypes = {"MAIN-SPEC", "OFF-SPEC", "ALT-MAIN-SPEC", "ALT-OFF-SPEC", "PVP/FARMING/MISC", "UNCONTESTED-ONLY"};
     selectbox:SetLabel("Bidding for: |cffff0000*")
     selectbox:SetRelativeWidth(0.5);
     selectbox:SetList(selecttypes);
@@ -271,11 +292,8 @@ if(GetAddOnEnableState(UnitName("player"),'AcoBid-Admin') == 0) then
     button:SetCallback("OnClick", function(widget)
   
       if typeGood and bidGood and timerCount > 0 then
-        guildName, guildRankName, guildRankIndex = GetGuildInfo("player");
-        if guildRankName == nil then
-          guildRankName = 'NO RANK'
-        end
-        local message = '['..bidID..'] '..itemLink..' "'..string.upper(guildRankName)..'" "'..selecttypes[selectbox:GetValue()]..'" '..tonumber(editbox:GetText()).." "..(biddingFrames[bidID].dkpamount or 'FALSE');
+
+        local message = '['..bidID..'] '..itemLink..' "'..selecttypes[selectbox:GetValue()]..'" '..tonumber(editbox:GetText()).." "..(biddingFrames[bidID].dkpamount or 'FALSE');
         if previousBid then
           if previousBid == message then
             errors:SetText('|cFFFF0000You\'ve already sent a bid with that value.')
