@@ -2,7 +2,7 @@
 ## Title: AcoTools
 ## Notes: Raid Tools for Acolytes
 ## Author: Curse
-## Version: 4.0.0
+## Version: 4.0.1
 ## SavedVariables: AcoBid_Data
 ## OptionalDeps: Ace3, LibDataBroker-1.1, LibDBIcon-1.0
 ## X-Embeds: Ace3, LibDataBroker-1.1, LibDBIcon-1.0

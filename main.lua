@@ -1599,17 +1599,17 @@ function AcoBidAdmin:AcoDKPCheckCallback(name,input,distribution,sender)
 end
 
 function AcoBidAdmin:AcoDKPHostCallback(name,input,distribution,sender)
-  if(input == "false") then
+  if(input == "false" or sender == myname or Acodkp.hasHost == sender) then
     return false
   end
 
-  Acodkp.hasHost = sender;
-  print('|cFF00FF00'..Acodkp.hasHost..' started hosting DKP!')
-
-  if(Acodkp.frame and (sender ~= myname or Acodkp.hasHost ~= sender)) then
+  if(Acodkp.frame) then
     Acodkp.frame.frame:Hide()
     Acodkp.frame = false;
-  end  
+  end
+
+  Acodkp.hasHost = sender;
+  print('|cFF00FF00'..Acodkp.hasHost..' started hosting DKP!') 
 end
 
 function getdkpforchar(input,sender)
