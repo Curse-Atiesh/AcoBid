@@ -1,7 +1,7 @@
 --[[-----------------------------------------------------------------------------
 Frame Container
 -------------------------------------------------------------------------------]]
-local Type, Version = "Frame", 28
+local Type, Version = "FrameAco", 28
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -51,6 +51,7 @@ local function MoverSizer_OnMouseUp(mover)
 	status.height = frame:GetHeight()
 	status.top = frame:GetTop()
 	status.left = frame:GetLeft()
+	frame.obj:Fire("OnResize")
 end
 
 local function SizerSE_OnMouseDown(frame)
@@ -167,9 +168,9 @@ Constructor
 -------------------------------------------------------------------------------]]
 local FrameBackdrop = {
 	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
-	tile = true, tileSize = 32, edgeSize = 32,
-	insets = { left = 8, right = 8, top = 8, bottom = 8 }
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	tile = true, tileSize = 16, edgeSize = 16,
+	insets = { left = 4, right = 4, top = 4, bottom = 4 }
 }
 
 local PaneBackdrop  = {
@@ -221,7 +222,7 @@ local function Constructor()
 	statustext:SetText("")
 
 	local titlebg = frame:CreateTexture(nil, "OVERLAY")
-	titlebg:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
+	-- titlebg:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
 	titlebg:SetTexCoord(0.31, 0.67, 0, 0.63)
 	titlebg:SetPoint("TOP", 0, 12)
 	titlebg:SetWidth(100)
@@ -234,17 +235,17 @@ local function Constructor()
 	title:SetAllPoints(titlebg)
 
 	local titletext = title:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	titletext:SetPoint("TOP", titlebg, "TOP", 0, -14)
+	titletext:SetPoint("TOP", titlebg, "TOP", 0, -20)
 
 	local titlebg_l = frame:CreateTexture(nil, "OVERLAY")
-	titlebg_l:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
+	-- titlebg_l:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
 	titlebg_l:SetTexCoord(0.21, 0.31, 0, 0.63)
 	titlebg_l:SetPoint("RIGHT", titlebg, "LEFT")
 	titlebg_l:SetWidth(30)
 	titlebg_l:SetHeight(40)
 
 	local titlebg_r = frame:CreateTexture(nil, "OVERLAY")
-	titlebg_r:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
+	-- titlebg_r:SetTexture(131080) -- Interface\\DialogFrame\\UI-DialogBox-Header
 	titlebg_r:SetTexCoord(0.67, 0.77, 0, 0.63)
 	titlebg_r:SetPoint("LEFT", titlebg, "RIGHT")
 	titlebg_r:SetWidth(30)
@@ -305,7 +306,9 @@ local function Constructor()
 		sizer_e     = sizer_e,
 		content     = content,
 		frame       = frame,
-		type        = Type
+		type        = Type,
+		statusbg    = statusbg,
+		closebutton = closebutton
 	}
 	for method, func in pairs(methods) do
 		widget[method] = func
